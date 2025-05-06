@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>Atendimentos ‒ Grupo Emerge</title>
   <link rel="icon" href="Vercel.png" type="image/x-icon">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- Responsividade -->
   <style>
     body {
       margin: 0;
@@ -55,6 +56,24 @@
     button:hover {
       background-color: #2f4c6e;
       cursor: pointer;
+    }
+
+    /* Responsividade */
+    @media (max-width: 480px) {
+      .container {
+        padding: 20px;
+        max-width: 90%;
+      }
+      h2 {
+        font-size: 20px;
+      }
+      label, input, select, button {
+        font-size: 14px;
+        padding: 10px;
+      }
+      button {
+        font-size: 16px;
+      }
     }
   </style>
 </head>
