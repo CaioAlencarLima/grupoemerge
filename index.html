@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Atendimentos ‒ Grupo Emerge</title>
+  <link rel="icon" href="Vercel.png" type="image/x-icon">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0f1c2e;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      color: #f0f4f8;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+    .container {
+      background-color: #182a40;
+      border-radius: 12px;
+      padding: 30px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+    }
+    h2 {
+      text-align: center;
+      margin-bottom: 20px;
+      font-weight: 500;
+      color: #e1e8f0;
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #b0b8c4;
+    }
+    input, select, button {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      background-color: #243b55;
+      color: #f0f4f8;
+      transition: background 0.2s ease;
+      box-sizing: border-box;
+    }
+    input:focus, select:focus, button:focus {
+      outline: none;
+      box-shadow: 0 0 0 2px #4c8eda88;
+    }
+    button:hover {
+      background-color: #2f4c6e;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Tela de Login -->
+  <div class="container" id="login-container">
+    <h2>Login</h2>
+    <label for="senha">Senha:</label>
+    <input type="password" id="senha" placeholder="Digite a senha">
+    <button onclick="verificarLogin()">Entrar</button>
+  </div>
+
+  <!-- Tela Principal -->
+  <div class="container" id="main-container" style="display: none;">
+    <h2>Grupo Emerge</h2>
+
+    <label for="cliente-select">Selecione um cliente:</label>
+    <select id="cliente-select">
+      <option value="">-- Selecione --</option>
+    </select>
+
+    <button id="refresh-btn">🤖</button>
+    <button id="edit-status-btn">🔄 Alterar Status</button>
+  </div>
+
+  <script>
+    const senhaHash = "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918";
+
+    async function verificarLogin() {
+      const senha = document.getElementById("senha").value;
+      const hash = await sha256(senha);
+      if (hash === senhaHash) {
+        document.getElementById("login-container").style.display = "none";
+        document.getElementById("main-container").style.display = "block";
+        carregarClientes();
+      } else {
+        alert("Senha incorreta.");
+      }
+    }
+
+    document.getElementById("senha").addEventListener("keypress", function(event) {
+      if (event.key === "Enter") verificarLogin();
+    });
+
+    async function sha256(str) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(str);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    const dropdown = document.getElementById("cliente-select");
+    const refreshBtn = document.getElementById("refresh-btn");
+    const editStatusBtn = document.getElementById("edit-status-btn");
+
+    const webhookUrl = "https://n8n.caioalencar.com/webhook/listar_clientes";
+    const updateStatusUrl = "https://n8n.caioalencar.com/webhook/atualizar-status";
+
+    function carregarClientes() {
+      fetch(webhookUrl)
+        .then(response => response.json())
+        .then(data => {
+          dropdown.innerHTML = '<option value="">-- Selecione --</option>';
+          data.forEach((cliente, index) => {
+            const option = document.createElement("option");
+            option.value = index;
+            option.text = `${cliente.nome} - ${cliente.telefone} - ${cliente.status}`;
+            option.dataset.telefone = cliente.telefone;
+            option.dataset.status = cliente.status;
+            dropdown.appendChild(option);
+          });
+        })
+        .catch(error => {
+          alert("Erro ao carregar clientes.");
+          console.error(error);
+        });
+    }
+
+    refreshBtn?.addEventListener("click", carregarClientes);
+
+    editStatusBtn?.addEventListener("click", () => {
+      const selectedOption = dropdown.options[dropdown.selectedIndex];
+      const telefone = selectedOption?.dataset?.telefone;
+      const statusAtual = selectedOption?.dataset?.status;
+
+      if (!telefone) {
+        alert("Por favor, selecione um cliente antes de alterar o status.");
+        return;
+      }
+
+      const novoStatus = statusAtual;
+
+      fetch(updateStatusUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          telefone: telefone,
+          status: novoStatus
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert("Status atualizado com sucesso!");
+        selectedOption.text = selectedOption.text.replace(/(true|false)$/, novoStatus);
+        selectedOption.dataset.status = novoStatus;
+      })
+      .catch(error => {
+        alert("Erro ao atualizar o status.");
+        console.error(error);
+      });
+    });
+  </script>
+
+</body>
+</html>
